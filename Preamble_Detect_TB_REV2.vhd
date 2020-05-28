@@ -19,7 +19,7 @@ Architecture behavior of Preamble_Detect_TB_REV2 is
 	signal led			:	std_logic;
 	
 	--Idle Simulation Signals
-	signal tb_idleStatus	:	std_logic;
+	signal tb_idleStatus	:	std_logic := '0';
 	
 	--Preamble Detect Simulation Signals
 	signal data_clock_out : std_logic;
@@ -29,12 +29,13 @@ Architecture behavior of Preamble_Detect_TB_REV2 is
 	signal tb_preambleBit : std_logic;
 	signal tb_strobe : std_logic;
 	signal tb_preambleCounter : integer := 0;
-	signal tb_preambleStatus : std_logic;
+	signal tb_preambleStatus : std_logic := '0';
+	signal patternCounter : integer := 0;
 	
 	--Servo Simulation Signals
-	signal servo		:	std_logic;
+	signal servo		:	std_logic:= '0';
 	signal tb_servoCounter : integer;
-	signal tb_servoStatus : std_logic;
+	signal tb_servoStatus : std_logic := '0';
 	
 	signal preamblePattern : std_logic_vector (16 downto 0) := (others =>'0');
 	signal testPattern : std_logic_vector (16 downto 0) := (others =>'0');
@@ -47,7 +48,6 @@ Architecture behavior of Preamble_Detect_TB_REV2 is
 begin
 	--LOAD IN PATTERN SIMULATION
 	preamblePattern <= "10100001010000001";
-	testPattern <= "10100001010000001";
 	
 	uut: entity work.Preamble_DetecT_REV2 port map (
 		button => button,
@@ -86,14 +86,30 @@ begin
 			
 			button <= '1';
 			wait for 15us;
+			
+			button <= '0';
+			wait for 130us;
 		end process;	
 
 --Simulation of Data Line to be Read
 	data_line_simulation: process
 		begin			
+			case patternCounter is	
+				when 0 =>
+					testPattern <= "11111111111111111";
+				when 1 =>
+					testPattern <= "00000000000000000";
+				when 2 =>
+					testPattern <= "10100001010000001";
+				when others =>
+					testPattern <= "10101010101010101";
+			end case;
+		
 			if(tb_strobe = '1'and tb_preambleStatus = '1') then
 				data_line <= testPattern(tb_preambleCounter);
-
+				if(tb_preambleCounter = 16) then
+					patternCounter <= patternCounter + 1;
+				end if;
 			end if;
 			wait for 10ns;
 		end process;
